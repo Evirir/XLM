@@ -49,7 +49,7 @@ if [ "$TGT" == "" ]; then echo "--tgt not provided"; exit; fi
 # if [ "$SRC" != "de" -a "$SRC" != "en" -a "$SRC" != "fr" -a "$SRC" != "ro" ]; then echo "unknown source language"; exit; fi
 # if [ "$TGT" != "de" -a "$TGT" != "en" -a "$TGT" != "fr" -a "$TGT" != "ro" ]; then echo "unknown target language"; exit; fi
 if [ "$SRC" == "$TGT" ]; then echo "source and target cannot be identical"; exit; fi
-# if [ "$SRC" \> "$TGT" ]; then echo "please ensure SRC < TGT"; exit; fi
+if [ "$SRC" \> "$TGT" ]; then echo "please ensure SRC < TGT"; exit; fi
 if [ "$RELOAD_CODES" != "" ] && [ ! -f "$RELOAD_CODES" ]; then echo "cannot locate BPE codes"; exit; fi
 if [ "$RELOAD_VOCAB" != "" ] && [ ! -f "$RELOAD_VOCAB" ]; then echo "cannot locate vocabulary"; exit; fi
 if [ "$RELOAD_CODES" == "" -a "$RELOAD_VOCAB" != "" -o "$RELOAD_CODES" != "" -a "$RELOAD_VOCAB" == "" ]; then echo "BPE codes should be provided if and only if vocabulary is also provided"; exit; fi
@@ -118,27 +118,10 @@ PARA_SRC_TEST_BPE=$PROC_PATH/test.$SRC-$TGT.$SRC
 PARA_TGT_TEST_BPE=$PROC_PATH/test.$SRC-$TGT.$TGT
 
 # valid / test file raw data
-unset PARA_SRC_VALID PARA_TGT_VALID PARA_SRC_TEST PARA_TGT_TEST
-if [ "$SRC" == "en" -a "$TGT" == "fr" ]; then
-  PARA_SRC_VALID=$PARA_PATH/dev/newstest2013-ref.en
-  PARA_TGT_VALID=$PARA_PATH/dev/newstest2013-ref.fr
-  PARA_SRC_TEST=$PARA_PATH/dev/newstest2014-fren-ref.en
-  PARA_TGT_TEST=$PARA_PATH/dev/newstest2014-fren-ref.fr
-fi
-if [ "$SRC" == "de" -a "$TGT" == "en" ]; then
-  PARA_SRC_VALID=$PARA_PATH/dev/newstest2013-ref.de
-  PARA_TGT_VALID=$PARA_PATH/dev/newstest2013-ref.en
-  PARA_SRC_TEST=$PARA_PATH/dev/newstest2016-ende-ref.de
-  PARA_TGT_TEST=$PARA_PATH/dev/newstest2016-deen-ref.en
-  # PARA_SRC_TEST=$PARA_PATH/dev/newstest2014-deen-ref.de
-  # PARA_TGT_TEST=$PARA_PATH/dev/newstest2014-deen-ref.en
-fi
-if [ "$SRC" == "en" -a "$TGT" == "ro" ]; then
-  PARA_SRC_VALID=$PARA_PATH/dev/newsdev2016-roen-ref.en
-  PARA_TGT_VALID=$PARA_PATH/dev/newsdev2016-enro-ref.ro
-  PARA_SRC_TEST=$PARA_PATH/dev/newstest2016-roen-ref.en
-  PARA_TGT_TEST=$PARA_PATH/dev/newstest2016-enro-ref.ro
-fi
+PARA_SRC_VALID=$PARA_PATH/dev/valid.$SRC-$TGT.$SRC
+PARA_TGT_VALID=$PARA_PATH/dev/valid.$SRC-$TGT.$TGT
+PARA_SRC_TEST=$PARA_PATH/dev/test.$SRC-$TGT.$SRC
+PARA_TGT_TEST=$PARA_PATH/dev/test.$SRC-$TGT.$TGT
 
 # install tools
 ./install-tools.sh
@@ -216,6 +199,49 @@ if ! [[ -f "$TGT_TRAIN_BPE.pth" ]]; then
 fi
 echo "$SRC binarized data in: $SRC_TRAIN_BPE.pth"
 echo "$TGT binarized data in: $TGT_TRAIN_BPE.pth"
+
+
+#
+# Download parallel data (for evaluation only)
+#
+
+cd $PARA_PATH
+
+# check valid and test files are here
+#if ! [[ -f "$PARA_SRC_VALID.txt" ]]; then echo "$PARA_SRC_VALID.txt is not found!"; exit; fi
+#if ! [[ -f "$PARA_TGT_VALID.txt" ]]; then echo "$PARA_TGT_VALID.txt is not found!"; exit; fi
+#if ! [[ -f "$PARA_SRC_TEST.txt" ]];  then echo "$PARA_SRC_TEST.txt is not found!";  exit; fi
+#if ! [[ -f "$PARA_TGT_TEST.txt" ]];  then echo "$PARA_TGT_TEST.txt is not found!";  exit; fi
+
+#echo "Tokenizing valid and test data..."
+#eval "cat $SRC_RAW | $SRC_PREPROCESSING > $SRC_TOK"
+#eval "cat $PARA_SRC_VALID.txt | $SRC_PREPROCESSING > $PARA_SRC_VALID"
+#eval "cat $PARA_TGT_VALID.txt | $TGT_PREPROCESSING > $PARA_TGT_VALID"
+#eval "cat $PARA_SRC_TEST.txt  | $SRC_PREPROCESSING > $PARA_SRC_TEST"
+#eval "cat $PARA_TGT_TEST.txt  | $TGT_PREPROCESSING > $PARA_TGT_TEST"
+
+echo "Applying BPE to valid and test files..."
+$FASTBPE applybpe $PARA_SRC_VALID_BPE $PARA_SRC_VALID $BPE_CODES $SRC_VOCAB
+$FASTBPE applybpe $PARA_TGT_VALID_BPE $PARA_TGT_VALID $BPE_CODES $TGT_VOCAB
+$FASTBPE applybpe $PARA_SRC_TEST_BPE  $PARA_SRC_TEST  $BPE_CODES $SRC_VOCAB
+$FASTBPE applybpe $PARA_TGT_TEST_BPE  $PARA_TGT_TEST  $BPE_CODES $TGT_VOCAB
+
+echo "Binarizing data..."
+rm -f $PARA_SRC_VALID_BPE.pth $PARA_TGT_VALID_BPE.pth $PARA_SRC_TEST_BPE.pth $PARA_TGT_TEST_BPE.pth
+$MAIN_PATH/preprocess.py $FULL_VOCAB $PARA_SRC_VALID_BPE
+$MAIN_PATH/preprocess.py $FULL_VOCAB $PARA_TGT_VALID_BPE
+$MAIN_PATH/preprocess.py $FULL_VOCAB $PARA_SRC_TEST_BPE
+$MAIN_PATH/preprocess.py $FULL_VOCAB $PARA_TGT_TEST_BPE
+
+#
+# Link monolingual validation and test data to parallel data
+#
+
+ln -sf $PARA_SRC_VALID_BPE.pth $SRC_VALID_BPE.pth
+ln -sf $PARA_TGT_VALID_BPE.pth $TGT_VALID_BPE.pth
+ln -sf $PARA_SRC_TEST_BPE.pth  $SRC_TEST_BPE.pth
+ln -sf $PARA_TGT_TEST_BPE.pth  $TGT_TEST_BPE.pth
+
 
 #
 # Summary
