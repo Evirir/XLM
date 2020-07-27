@@ -217,19 +217,6 @@ fi
 echo "$SRC binarized data in: $SRC_TRAIN_BPE.pth"
 echo "$TGT binarized data in: $TGT_TRAIN_BPE.pth"
 
-
-#
-# Download parallel data (for evaluation only)
-#
-
-cd $PARA_PATH
-
-echo "Downloading parallel data..."
-wget -c http://data.statmt.org/wmt18/translation-task/dev.tgz
-
-echo "Extracting parallel data..."
-tar -xzf dev.tgz
-
 #
 # Summary
 #
