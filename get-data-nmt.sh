@@ -11,7 +11,7 @@ set -e
 #
 # Data preprocessing configuration
 #
-N_MONO=500000  # number of monolingual sentences for each language
+N_MONO=450000   # number of monolingual sentences for each language
 CODES=60000     # number of BPE codes
 N_THREADS=16    # number of threads in data preprocessing
 
@@ -49,7 +49,7 @@ if [ "$TGT" == "" ]; then echo "--tgt not provided"; exit; fi
 # if [ "$SRC" != "de" -a "$SRC" != "en" -a "$SRC" != "fr" -a "$SRC" != "ro" ]; then echo "unknown source language"; exit; fi
 # if [ "$TGT" != "de" -a "$TGT" != "en" -a "$TGT" != "fr" -a "$TGT" != "ro" ]; then echo "unknown target language"; exit; fi
 if [ "$SRC" == "$TGT" ]; then echo "source and target cannot be identical"; exit; fi
-if [ "$SRC" \> "$TGT" ]; then echo "please ensure SRC < TGT"; exit; fi
+# if [ "$SRC" \> "$TGT" ]; then echo "please ensure SRC < TGT"; exit; fi
 if [ "$RELOAD_CODES" != "" ] && [ ! -f "$RELOAD_CODES" ]; then echo "cannot locate BPE codes"; exit; fi
 if [ "$RELOAD_VOCAB" != "" ] && [ ! -f "$RELOAD_VOCAB" ]; then echo "cannot locate vocabulary"; exit; fi
 if [ "$RELOAD_CODES" == "" -a "$RELOAD_VOCAB" != "" -o "$RELOAD_CODES" != "" -a "$RELOAD_VOCAB" == "" ]; then echo "BPE codes should be provided if and only if vocabulary is also provided"; exit; fi
@@ -229,41 +229,6 @@ wget -c http://data.statmt.org/wmt18/translation-task/dev.tgz
 
 echo "Extracting parallel data..."
 tar -xzf dev.tgz
-
-# check valid and test files are here
-if ! [[ -f "$PARA_SRC_VALID.sgm" ]]; then echo "$PARA_SRC_VALID.sgm is not found!"; exit; fi
-if ! [[ -f "$PARA_TGT_VALID.sgm" ]]; then echo "$PARA_TGT_VALID.sgm is not found!"; exit; fi
-if ! [[ -f "$PARA_SRC_TEST.sgm" ]];  then echo "$PARA_SRC_TEST.sgm is not found!";  exit; fi
-if ! [[ -f "$PARA_TGT_TEST.sgm" ]];  then echo "$PARA_TGT_TEST.sgm is not found!";  exit; fi
-
-echo "Tokenizing valid and test data..."
-eval "$INPUT_FROM_SGM < $PARA_SRC_VALID.sgm | $SRC_PREPROCESSING > $PARA_SRC_VALID"
-eval "$INPUT_FROM_SGM < $PARA_TGT_VALID.sgm | $TGT_PREPROCESSING > $PARA_TGT_VALID"
-eval "$INPUT_FROM_SGM < $PARA_SRC_TEST.sgm  | $SRC_PREPROCESSING > $PARA_SRC_TEST"
-eval "$INPUT_FROM_SGM < $PARA_TGT_TEST.sgm  | $TGT_PREPROCESSING > $PARA_TGT_TEST"
-
-echo "Applying BPE to valid and test files..."
-$FASTBPE applybpe $PARA_SRC_VALID_BPE $PARA_SRC_VALID $BPE_CODES $SRC_VOCAB
-$FASTBPE applybpe $PARA_TGT_VALID_BPE $PARA_TGT_VALID $BPE_CODES $TGT_VOCAB
-$FASTBPE applybpe $PARA_SRC_TEST_BPE  $PARA_SRC_TEST  $BPE_CODES $SRC_VOCAB
-$FASTBPE applybpe $PARA_TGT_TEST_BPE  $PARA_TGT_TEST  $BPE_CODES $TGT_VOCAB
-
-echo "Binarizing data..."
-rm -f $PARA_SRC_VALID_BPE.pth $PARA_TGT_VALID_BPE.pth $PARA_SRC_TEST_BPE.pth $PARA_TGT_TEST_BPE.pth
-$MAIN_PATH/preprocess.py $FULL_VOCAB $PARA_SRC_VALID_BPE
-$MAIN_PATH/preprocess.py $FULL_VOCAB $PARA_TGT_VALID_BPE
-$MAIN_PATH/preprocess.py $FULL_VOCAB $PARA_SRC_TEST_BPE
-$MAIN_PATH/preprocess.py $FULL_VOCAB $PARA_TGT_TEST_BPE
-
-
-#
-# Link monolingual validation and test data to parallel data
-#
-ln -sf $PARA_SRC_VALID_BPE.pth $SRC_VALID_BPE.pth
-ln -sf $PARA_TGT_VALID_BPE.pth $TGT_VALID_BPE.pth
-ln -sf $PARA_SRC_TEST_BPE.pth  $SRC_TEST_BPE.pth
-ln -sf $PARA_TGT_TEST_BPE.pth  $TGT_TEST_BPE.pth
-
 
 #
 # Summary
