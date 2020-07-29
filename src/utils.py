@@ -107,7 +107,7 @@ def get_dump_path(params):
             count = 1
             while True:
                 exp_id = f'experiment{count}'
-                if not os.path.isdir(os.path.join(sweep_path, exp_id)):
+                if not os.path.isfile(os.path.join(sweep_path, exp_id + "/params.pkl")):
                     break
                 count += 1
         else:

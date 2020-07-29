@@ -116,7 +116,7 @@ class Evaluator(object):
             n_sentences = 600 if (data_set == 'test' or lang1 not in eval_lgs) else 1500
         elif len(self.params.langs) > 5:
             subsample = 10 if data_set == 'test' else 5
-            n_sentences = 300 if data_set == 'test' else 1500
+            n_sentences = 300 if data_set == 'test' else 1000
         else:
             # n_sentences = -1 if data_set == 'valid' else 100
             n_sentences = -1
