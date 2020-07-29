@@ -104,11 +104,12 @@ def get_dump_path(params):
         assert chronos_job_id is None or slurm_job_id is None
         exp_id = chronos_job_id if chronos_job_id is not None else slurm_job_id
         if exp_id is None:
-            chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
+            count = 1
             while True:
-                exp_id = ''.join(random.choice(chars) for _ in range(10))
+                exp_id = f'experiment{count}'
                 if not os.path.isdir(os.path.join(sweep_path, exp_id)):
                     break
+                count += 1
         else:
             assert exp_id.isdigit()
         params.exp_id = exp_id
